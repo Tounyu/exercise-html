@@ -1,73 +1,85 @@
-use crate::dom::{AttrMap, Element, Node};
+use std::boxed::Box;
+use std::convert::Into;
+use std::string::{String, ToString};
+use std::vec::Vec;
+
+use combine::{between, many, many1, parser, Parser, satisfy, Stream};
 use combine::error::ParseError;
-use combine::parser::char::char;
-use combine::{parser, Parser, Stream};
+use combine::parser::char::{char, letter, newline, space};
+
+use crate::dom::{AttrMap, Element, Node};
 
 /// `attribute` consumes `name="value"`.
-fn attribute<Input>() -> impl Parser<Input, Output = (String, String)>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn attribute<Input>() -> impl Parser<Input, Output=(String, String)>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    todo!("you need to implement this combinator");
-    (char(' ')).map(|_| ("".to_string(), "".to_string()))
+    (
+        many1::<String, _, _>(letter()), // まずは属性の名前を何文字か読む
+        many::<String, _, _>(space().or(newline())), // 空白と改行を読み飛ばす
+        char('='), // = を読む
+        many::<String, _, _>(space().or(newline())), // 空白と改行を読み飛ばす
+        between(char('"'), char('"'), many1::<String, _, _>(satisfy(|c: char| c != '"'))), // 引用符の間の、引用符を含まない文字を読む
+    )
+        .map(|v| (v.0, v.4)) // はじめに読んだ属性の名前と、最後に読んだ引用符の中の文字列を結果として返す
 }
 
 /// `attributes` consumes `name1="value1" name2="value2" ... name="value"`
-fn attributes<Input>() -> impl Parser<Input, Output = AttrMap>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn attributes<Input>() -> impl Parser<Input, Output=AttrMap>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| AttrMap::new())
 }
 
 /// `open_tag` consumes `<tag_name attr_name="attr_value" ...>`.
-fn open_tag<Input>() -> impl Parser<Input, Output = (String, AttrMap)>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn open_tag<Input>() -> impl Parser<Input, Output=(String, AttrMap)>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| ("".to_string(), AttrMap::new()))
 }
 
 /// close_tag consumes `</tag_name>`.
-fn close_tag<Input>() -> impl Parser<Input, Output = String>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn close_tag<Input>() -> impl Parser<Input, Output=String>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| ("".to_string()))
 }
 
 // `nodes_` (and `nodes`) tries to parse input as Element or Text.
-fn nodes_<Input>() -> impl Parser<Input, Output = Vec<Box<Node>>>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn nodes_<Input>() -> impl Parser<Input, Output=Vec<Box<Node>>>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| vec![Element::new("".into(), AttrMap::new(), vec![])])
 }
 
 /// `text` consumes input until `<` comes.
-fn text<Input>() -> impl Parser<Input, Output = Box<Node>>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn text<Input>() -> impl Parser<Input, Output=Box<Node>>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| Element::new("".into(), AttrMap::new(), vec![]))
 }
 
 /// `element` consumes `<tag_name attr_name="attr_value" ...>(children)</tag_name>`.
-fn element<Input>() -> impl Parser<Input, Output = Box<Node>>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
+fn element<Input>() -> impl Parser<Input, Output=Box<Node>>
+    where
+        Input: Stream<Token=char>,
+        Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     todo!("you need to implement this combinator");
     (char(' ')).map(|_| Element::new("".into(), AttrMap::new(), vec![]))
@@ -94,8 +106,11 @@ pub fn parse_raw(raw: &str) -> Vec<Box<Node>> {
     let (nodes, _) = nodes().parse(raw).unwrap();
     nodes
 }
+
 #[cfg(test)]
 mod tests {
+    use std::result::Result::Ok;
+
     use crate::dom::Text;
 
     use super::*;
@@ -177,7 +192,7 @@ mod tests {
                 Element::new(
                     "p".to_string(),
                     AttrMap::new(),
-                    vec![Text::new("hello world".to_string())]
+                    vec![Text::new("hello world".to_string())],
                 ),
                 ""
             ))
@@ -192,7 +207,7 @@ mod tests {
                     vec![Element::new(
                         "p".to_string(),
                         AttrMap::new(),
-                        vec![Text::new("hello world".to_string())]
+                        vec![Text::new("hello world".to_string())],
                     )],
                 ),
                 ""
