@@ -1,9 +1,10 @@
 use std::boxed::Box;
-use std::convert::Into;
+use std::convert::{From, Into};
+use std::iter::{IntoIterator, Iterator};
 use std::string::{String, ToString};
 use std::vec::Vec;
 
-use combine::{between, many, many1, parser, Parser, satisfy, Stream};
+use combine::{between, many, many1, parser, Parser, satisfy, sep_by, Stream};
 use combine::error::ParseError;
 use combine::parser::char::{char, letter, newline, space};
 
@@ -31,8 +32,16 @@ fn attributes<Input>() -> impl Parser<Input, Output=AttrMap>
         Input: Stream<Token=char>,
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    todo!("you need to implement this combinator");
-    (char(' ')).map(|_| AttrMap::new())
+    sep_by::<Vec<(String, String)>, _, _, _>(
+        attribute(),
+        many::<String, _, _>(space().or(newline())),
+    ).map(|v| {
+        let mut map = AttrMap::new();
+        for (k, v) in v {
+            map.insert(k, v);
+        }
+        map
+    })
 }
 
 /// `open_tag` consumes `<tag_name attr_name="attr_value" ...>`.
