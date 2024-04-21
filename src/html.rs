@@ -50,8 +50,14 @@ fn open_tag<Input>() -> impl Parser<Input, Output=(String, AttrMap)>
         Input: Stream<Token=char>,
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    todo!("you need to implement this combinator");
-    (char(' ')).map(|_| ("".to_string(), AttrMap::new()))
+    (
+        char('<'),
+        many1::<String, _, _>(letter()),
+        many::<String, _, _>(space().or(newline())),
+        attributes(),
+        many::<String, _, _>(space().or(newline())),
+        char('>'),
+    ).map(|v| (v.1, v.3))
 }
 
 /// close_tag consumes `</tag_name>`.
@@ -60,8 +66,12 @@ fn close_tag<Input>() -> impl Parser<Input, Output=String>
         Input: Stream<Token=char>,
         Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    todo!("you need to implement this combinator");
-    (char(' ')).map(|_| ("".to_string()))
+    (
+        char('<'),
+        char('/'),
+        many1::<String, _, _>(letter()),
+        char('>'),
+    ).map(|v| v.2)
 }
 
 // `nodes_` (and `nodes`) tries to parse input as Element or Text.
